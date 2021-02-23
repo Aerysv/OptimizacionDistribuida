@@ -180,7 +180,7 @@ cinetica21..        r2('1') =E= k0('1','reaccion2')*system.exp(-Ea('1','reaccion
 cinetica31..        r3('1') =E= k0('1','reaccion3')*system.exp(-Ea('1','reaccion3')/(R*(T('1')+273.15)))*Ca('1')**2;
 dH1..               dHtot('1') =E= -V('1')*(dH('1','reaccion1')*r1('1') + dH('1','reaccion2')*r2('1') + dH('1','reaccion3')*r3('1'));
 TransmisionCalor1.. Q_tr('1') =E= alpha('1')*(qc('1')**0.8)*(T('1') - Tc('1'));
-CostoIndividual1..  J1 =E= -(q('1')*(c_b*Cb('1') + c_c*Cc('1') + c_d*Cd('1') - c_a*Ca('1')) - c_qc*qc('1')) + lambda_1('1')*q('1')/qmax + lambda_2('1')*qc('1')/qcmax;
+CostoIndividual1..  J1 =E= -(q('1')*(c_b*Cb('1') + c_c*Cc('1') + c_d*Cd('1') - c_a*Ca('1')) - c_qc*qc('1')) + lambda_1('1')*q('1') + lambda_2('1')*qc('1');
 
 Balance_Ca2..       0 =E= q('2')*(Ca0('2') - Ca('2')) + V('2')*(-r1('2') - 2*r3('2'));
 Balance_Cb2..       0 =E= -q('2')*Cb('2') + V('2')*( r1('2') -   r2('2'));
@@ -193,7 +193,7 @@ cinetica22..        r2('2') =E= k0('2','reaccion2')*system.exp(-Ea('2','reaccion
 cinetica32..        r3('2') =E= k0('2','reaccion3')*system.exp(-Ea('2','reaccion3')/(R*(T('2')+273.15)))*Ca('2')**2;
 dH2..               dHtot('2') =E= -V('2')*(dH('2','reaccion1')*r1('2') + dH('2','reaccion2')*r2('2') + dH('2','reaccion3')*r3('2'));
 TransmisionCalor2.. Q_tr('2') =E= alpha('2')*(qc('2')**0.8)*(T('2') - Tc('2'));
-CostoIndividual2..  J2 =E= -(q('2')*(c_b*Cb('2') + c_c*Cc('2') + c_d*Cd('2') - c_a*Ca('2')) - c_qc*qc('2')) + lambda_1('2')*q('2')/qmax + lambda_2('2')*qc('2')/qcmax;
+CostoIndividual2..  J2 =E= -(q('2')*(c_b*Cb('2') + c_c*Cc('2') + c_d*Cd('2') - c_a*Ca('2')) - c_qc*qc('2')) + lambda_1('2')*q('2') + lambda_2('2')*qc('2');
 
 Balance_Ca3..       0 =E= q('3')*(Ca0('3') - Ca('3')) + V('3')*(-r1('3') - 2*r3('3'));
 Balance_Cb3..       0 =E= -q('3')*Cb('3') + V('3')*( r1('3') -   r2('3'));
@@ -206,16 +206,16 @@ cinetica23..        r2('3') =E= k0('3','reaccion2')*system.exp(-Ea('3','reaccion
 cinetica33..        r3('3') =E= k0('3','reaccion3')*system.exp(-Ea('3','reaccion3')/(R*(T('3')+273.15)))*Ca('3')**2;
 dH3..               dHtot('3') =E= -V('3')*(dH('3','reaccion1')*r1('3') + dH('3','reaccion2')*r2('3') + dH('3','reaccion3')*r3('3'));
 TransmisionCalor3.. Q_tr('3') =E= alpha('3')*(qc('3')**0.8)*(T('3') - Tc('3'));
-CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1('3')*q('3')/qmax + lambda_2('3')*qc('3')/qcmax;
+CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1('3')*q('3') + lambda_2('3')*qc('3');
 
 restr_LD21..        sum(i, s(i)) =L= qmax;
 restr_LD22..        sum(i, sc(i)) =L= qcmax;
-Costo_LD21..        J_LD21 =E= - sum(i, lambda_1(i)*s(i))/qmax;
-Costo_LD22..        J_LD22 =E= - sum(i, lambda_2(i)*sc(i))/qcmax;
+Costo_LD21..        J_LD21 =E= - sum(i, lambda_1(i)*s(i));
+Costo_LD22..        J_LD22 =E= - sum(i, lambda_2(i)*sc(i));
 
 ReactivosTotal..    sum(i, q(i)) =L= qmax;
 RefrigeranteTotal.. sum(i, qc(i)) =L= qcmax;
-*CostoTotal.. J_total =E= J1 + J2 + J3 - sum(i, lambda_1(i)*q(i))/qmax - sum(i, lambda_2(i)*qc(i))/qcmax;
+*CostoTotal.. J_total =E= J1 + J2 + J3 - sum(i, lambda_1(i)*q(i)) - sum(i, lambda_2(i)*qc(i));
 CostoTotal.. J_total =E= -sum(i, (q(i)*(c_b*Cb(i) + c_c*Cc(i) + c_d*Cd(i) - c_a*Ca(i)) - c_qc*qc(i)));
 
 q.lo(i) = 0.3;
@@ -289,8 +289,8 @@ while (n_iter < 10000,
     
 
     
-    sub_q(i) = (q.l(i) - s.l(i))/qmax;
-    sub_qc(i) = (qc.l(i) - sc.l(i))/qcmax;
+    sub_q(i) = (q.l(i) - s.l(i));
+    sub_qc(i) = (qc.l(i) - sc.l(i));
     
     norm2_q = sqrt(sum(i, sqr(sub_q(i))));
     norm2_qc = sqrt(sum(i, sqr(sub_qc(i))));
@@ -314,8 +314,6 @@ Parameters
     J_upper /inf/
     ;
     
-Scalar contador /0/;
-
 while (n_iter < 10000,
     
     n_iter = n_iter + 1;
@@ -343,7 +341,6 @@ while (n_iter < 10000,
 *** Evaluate the global problem at a feasible solution
 ******************************************************
     if ( (sum(i, s.l(i)) <= qmax + 1e-6) and (sum(i, sc.l(i)) <= qcmax + 1e-6),
-        contador = contador + 1;
         q_temp(i) = q.l(i);
         qc_temp(i) = qc.l(i);
         q.fx(i) = s.l(i);
@@ -367,16 +364,14 @@ while (n_iter < 10000,
 ******************************************************
 *** Update the multipliers via sub-gradient method
 ******************************************************
-    sub_q(i) = (q.l(i) - s.l(i))/qmax;
-    sub_qc(i) = (qc.l(i) - sc.l(i))/qcmax;
+    sub_q(i) = (q.l(i) - s.l(i));
+    sub_qc(i) = (qc.l(i) - sc.l(i));
     
     norm2_q = sqrt(sum(i, sqr(sub_q(i))));
     norm2_qc = sqrt(sum(i, sqr(sub_qc(i))));
     
     lambda_1(i) = max(0, lambda_1(i) + step_size*abs(J_upper - J_dual)*sub_q(i)/sqr(norm2_q));
     lambda_2(i) = max(0, lambda_2(i) + step_size*abs(J_upper - J_dual)*sub_qc(i)/sqr(norm2_qc));
-*    lambda_1(i) = max(0, lambda_1(i) + step_size*sub_q(i)/norm2_q);
-*    lambda_2(i) = max(0, lambda_2(i) + step_size*sub_qc(i)/norm2_qc);
   
 ******************************************************
 *** Convergence check
@@ -388,7 +383,7 @@ while (n_iter < 10000,
     q.l(i) = s.l(i);
     qc.l(i) = sc.l(i);
     put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), sc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
-        lambda_2('1'), lambda_2('2'), lambda_2('3'), J_upper, J_dual, contador /;
+        lambda_2('1'), lambda_2('2'), lambda_2('3'), J_upper, J_dual /;
     q.l(i) = s.l(i);
     qc.l(i) = sc.l(i);
     );
