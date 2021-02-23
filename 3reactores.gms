@@ -158,7 +158,9 @@ q.up(i) = 3;
 qc.lo(i) = 1;
 qc.up(i) = 25;
 T.lo(i) = 10;
-T.up(i) = 70;
+T.up(i) = 150;
+
+options NLP = ipopt;
 
 model modelo /ALL/;
 solve modelo minimizing J_total using NLP;

@@ -70,7 +70,10 @@ Table dH(i,k)    "Energía de activación (kJ/mol)"
     3   -3          -3          -7;
 
 Positive Variables
-
+    r1(i)   "Velocidad de la reacción 1 (mol/min)"
+    r2(i)   "Velocidad de la reacción 2 (mol/min)"
+    r3(i)   "Velocidad de la reacción 3 (mol/min)"
+    dHtot(i)"Calor total de reacción (kJ/min)"
     Ca(i)   "Concentrción de A (mol/L)"
             /1.l 0.2,
              2.l 0.2,
@@ -113,10 +116,6 @@ Positive Variables
              2.l 7,
              3.l 14/;
 Variables
-    r1(i)   "Velocidad de la reacción 1 (mol/min)"
-    r2(i)   "Velocidad de la reacción 2 (mol/min)"
-    r3(i)   "Velocidad de la reacción 3 (mol/min)"
-    dHtot(i)"Calor total de reacción (kJ/min)"
     J1      "Funcion de costo individual (€/min)"
     J2      "Funcion de costo individual (€/min)"
     J3      "Funcion de costo individual (€/min)"
@@ -162,8 +161,8 @@ Equations
     CostoIndividual2    "Función de costo de cada reactor"
     CostoIndividual3    "Función de costo de cada reactor"
     restr_LD21
-    restr_LD22
     Costo_LD21
+    restr_LD22
     Costo_LD22
     ReactivosTotal
     RefrigeranteTotal
@@ -209,25 +208,29 @@ TransmisionCalor3.. Q_tr('3') =E= alpha('3')*(qc('3')**0.8)*(T('3') - Tc('3'));
 CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1('3')*q('3') + lambda_2('3')*qc('3');
 
 restr_LD21..        sum(i, s(i)) =L= qmax;
-restr_LD22..        sum(i, sc(i)) =L= qcmax;
 Costo_LD21..        J_LD21 =E= - sum(i, lambda_1(i)*s(i));
+
+restr_LD22..        sum(i, sc(i)) =L= qcmax;
 Costo_LD22..        J_LD22 =E= - sum(i, lambda_2(i)*sc(i));
 
 ReactivosTotal..    sum(i, q(i)) =L= qmax;
 RefrigeranteTotal.. sum(i, qc(i)) =L= qcmax;
-*CostoTotal.. J_total =E= J1 + J2 + J3 - sum(i, lambda_1(i)*q(i)) - sum(i, lambda_2(i)*qc(i));
 CostoTotal.. J_total =E= -sum(i, (q(i)*(c_b*Cb(i) + c_c*Cc(i) + c_d*Cd(i) - c_a*Ca(i)) - c_qc*qc(i)));
 
 q.lo(i) = 0.3;
-q.up(i) = 3;
-qc.lo(i) = 1;
-qc.up(i) = 25;
 s.lo(i) = 0.3;
+
+q.up(i) = 3;
 s.up(i) = 3;
+
+qc.lo(i) = 1;
 sc.lo(i) = 1;
+
+qc.up(i) = 25;
 sc.up(i) = 25;
+
 T.lo(i) = 10;
-T.up(i) = 70;
+T.up(i) = 1500;
 
 model subproblema1 /Balance_Ca1, Balance_Cb1, Balance_Cc1, Balance_Cd1, Balance_T1, Balance_Tc1,
                     cinetica11, cinetica21, cinetica31, dH1, TransmisionCalor1, CostoIndividual1/;
@@ -247,15 +250,6 @@ put reporte;
 reporte.nd = 5;
 *Delimitar por comas
 *reporte.pc = 5;
-    
-Parameters
-    sub_q(i)
-    sub_qc(i)
-    norm2_q
-    norm2_qc;
-    
-lambda_1(i) = 0;
-lambda_2(i) = 0;
 
 option NLP = ipopt;
 
@@ -272,53 +266,27 @@ subproblema1.optfile = 1;
 subproblema2.optfile = 1;
 subproblema3.optfile = 1;
 LD21.optfile = 1;
-LD22.optfile = 2;
-
-$ontext
-while (n_iter < 10000,
-    
-    n_iter = n_iter + 1;
-    step_size = 20/sqrt(n_iter);
-
-    solve subproblema1 minimizing J1 using NLP;
-    solve subproblema2 minimizing J2 using NLP;
-    solve subproblema3 minimizing J3 using NLP;
-    
-    solve LD21 minizing J_LD21 using NLP;
-    solve LD22 minizing J_LD22 using NLP;
-    
-
-    
-    sub_q(i) = (q.l(i) - s.l(i));
-    sub_qc(i) = (qc.l(i) - sc.l(i));
-    
-    norm2_q = sqrt(sum(i, sqr(sub_q(i))));
-    norm2_qc = sqrt(sum(i, sqr(sub_qc(i))));
-    
-    lambda_1(i) = max(0, lambda_1(i) + step_size*sub_q(i)/norm2_q);
-    lambda_2(i) = max(0, lambda_2(i) + step_size*sub_qc(i)/norm2_qc);
-    
-    if (norm2_q + norm2_qc <= 1e-6,
-        break
-        );
-*    q.l(i) = s.l(i);
-*    qc.l(i) = sc.l(i);
-    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), sc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'), lambda_2('1'), lambda_2('2'), lambda_2('3') /;
-    );
-$offtext
+LD22.optfile = 1;
+global.optfile = 1;
 
 Parameters
+    sub_q(i)
+    sub_qc(i)
+    norm2_q
+    norm2_qc
     q_temp(i)
     qc_temp(i)
     J_dual
     J_upper /inf/
+    modelo
+    solver
     ;
-    
-while (n_iter < 10000,
+
+while (n_iter < 1000,
     
     n_iter = n_iter + 1;
-*    step_size = 1/sqrt(n_iter);
-    step_size = 0.001;
+    step_size = 0.01;
+    
 ******************************************************
 *** Solve the subproblems LD1
 ******************************************************
@@ -341,31 +309,36 @@ while (n_iter < 10000,
 *** Evaluate the global problem at a feasible solution
 ******************************************************
     if ( (sum(i, s.l(i)) <= qmax + 1e-6) and (sum(i, sc.l(i)) <= qcmax + 1e-6),
+    
         q_temp(i) = q.l(i);
         qc_temp(i) = qc.l(i);
+        
         q.fx(i) = s.l(i);
         qc.fx(i) = sc.l(i);
         
         solve global minimizing J_total using NLP;
         
-        if ((J_total.l<J_upper) and (J_total.l>J_dual),
-            J_upper = J_total.l;
-            );
-        J_upper = -372.642;
+        modelo = global.MODELSTAT;
+        solver = global.SOLVESTAT;
+        
         q.lo(i) = 0.3;
         q.up(i) = 3;
         qc.lo(i) = 1;
         qc.up(i) = 25;
-        
+
         q.l(i) = q_temp(i);
         qc.l(i) = qc_temp(i);
+        
+        if ((J_total.l<J_upper) and (J_total.l>J_dual) and (modelo <= 2) and (solver = 1),
+            J_upper = J_total.l;
+            );
         );
         
 ******************************************************
 *** Update the multipliers via sub-gradient method
 ******************************************************
-    sub_q(i) = (q.l(i) - s.l(i));
-    sub_qc(i) = (qc.l(i) - sc.l(i));
+    sub_q(i) = q.l(i) - s.l(i);
+    sub_qc(i) = qc.l(i) - sc.l(i);
     
     norm2_q = sqrt(sum(i, sqr(sub_q(i))));
     norm2_qc = sqrt(sum(i, sqr(sub_qc(i))));
@@ -376,17 +349,15 @@ while (n_iter < 10000,
 ******************************************************
 *** Convergence check
 ******************************************************
-    if (norm2_q + norm2_qc <= 1e-6,
+    if (abs(J_upper - J_dual) <= 1e-6,
         break
         );
-        
-    q.l(i) = s.l(i);
-    qc.l(i) = sc.l(i);
-    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), sc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
-        lambda_2('1'), lambda_2('2'), lambda_2('3'), J_upper, J_dual /;
-    q.l(i) = s.l(i);
-    qc.l(i) = sc.l(i);
+    if ((modelo <= 2) and (solver = 1),
+        q.l(i) = s.l(i);
+        qc.l(i) = sc.l(i);
+        );
+    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
+        lambda_2('1'), lambda_2('2'), lambda_2('3'), J_upper, J_dual, s.l('1'), s.l('2'), s.l('3'), sc.l('1'), sc.l('2'), sc.l('3') /;
     );
-
 putclose;
-Display q.l, qc.l, T.l, Tc.l, Ca.l, Cb.l, J1.l, J2.l, J3.l, lambda_1, lambda_2;
+
