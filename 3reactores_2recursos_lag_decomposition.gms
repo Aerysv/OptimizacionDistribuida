@@ -121,7 +121,8 @@ Variables
     J2      "Funcion de costo individual (€/min)"
     J3      "Funcion de costo individual (€/min)"
     J_LD21
-    J_LD22;
+    J_LD22
+    J_total;
 
 Equations
     Balance_Ca1         "Balance de materia Ca"
@@ -163,7 +164,10 @@ Equations
     restr_LD21
     restr_LD22
     Costo_LD21
-    Costo_LD22;
+    Costo_LD22
+    ReactivosTotal
+    RefrigeranteTotal
+    CostoTotal;
 
 Balance_Ca1..       0 =E= q('1')*(Ca0('1') - Ca('1')) + V('1')*(-r1('1') - 2*r3('1'));
 Balance_Cb1..       0 =E= -q('1')*Cb('1') + V('1')*( r1('1') -   r2('1'));
@@ -206,8 +210,13 @@ CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c
 
 restr_LD21..        sum(i, s(i)) =L= qmax;
 restr_LD22..        sum(i, sc(i)) =L= qcmax;
-Costo_LD21..        J_LD21 =E= - sum(i, lambda_1(i)*s(i));
-Costo_LD22..        J_LD22 =E= - sum(i, lambda_2(i)*sc(i));
+Costo_LD21..        J_LD21 =E= - sum(i, lambda_1(i)*s(i))/qmax;
+Costo_LD22..        J_LD22 =E= - sum(i, lambda_2(i)*sc(i))/qcmax;
+
+ReactivosTotal..    sum(i, q(i)) =L= qmax;
+RefrigeranteTotal.. sum(i, qc(i)) =L= qcmax;
+*CostoTotal.. J_total =E= J1 + J2 + J3 - sum(i, lambda_1(i)*q(i))/qmax - sum(i, lambda_2(i)*qc(i))/qcmax;
+CostoTotal.. J_total =E= -sum(i, (q(i)*(c_b*Cb(i) + c_c*Cc(i) + c_d*Cd(i) - c_a*Ca(i)) - c_qc*qc(i)));
 
 q.lo(i) = 0.3;
 q.up(i) = 3;
@@ -226,6 +235,8 @@ model subproblema2 /Balance_Ca2, Balance_Cb2, Balance_Cc2, Balance_Cd2, Balance_
                     cinetica12, cinetica22, cinetica32, dH2, TransmisionCalor2, CostoIndividual2/;
 model subproblema3 /Balance_Ca3, Balance_Cb3, Balance_Cc3, Balance_Cd3, Balance_T3, Balance_Tc3,
                     cinetica13, cinetica23, cinetica33, dH3, TransmisionCalor3, CostoIndividual3/;
+                    
+model global /subproblema1, subproblema2, subproblema3, CostoTotal, ReactivosTotal, RefrigeranteTotal/;
 
 model LD21 /restr_LD21, Costo_LD21/;
 model LD22 /restr_LD22, Costo_LD22/;
@@ -243,15 +254,31 @@ Parameters
     norm2_q
     norm2_qc;
     
-option NLP = ipopt;
-
 lambda_1(i) = 0;
 lambda_2(i) = 0;
 
+option NLP = ipopt;
+
+****************************
+*** Set IPOPT options file
+****************************
+$onecho >ipopt.opt
+print_level 0
+print_eval_error no
+print_timing_statistics no
+$offecho
+
+subproblema1.optfile = 1;
+subproblema2.optfile = 1;
+subproblema3.optfile = 1;
+LD21.optfile = 1;
+LD22.optfile = 2;
+
+$ontext
 while (n_iter < 10000,
     
     n_iter = n_iter + 1;
-    step_size = 10/sqrt(n_iter);
+    step_size = 20/sqrt(n_iter);
 
     solve subproblema1 minimizing J1 using NLP;
     solve subproblema2 minimizing J2 using NLP;
@@ -278,7 +305,93 @@ while (n_iter < 10000,
 *    qc.l(i) = sc.l(i);
     put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), sc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'), lambda_2('1'), lambda_2('2'), lambda_2('3') /;
     );
+$offtext
+
+Parameters
+    q_temp(i)
+    qc_temp(i)
+    J_dual
+    J_upper /inf/
+    ;
+    
+Scalar contador /0/;
+
+while (n_iter < 10000,
+    
+    n_iter = n_iter + 1;
+*    step_size = 1/sqrt(n_iter);
+    step_size = 0.001;
+******************************************************
+*** Solve the subproblems LD1
+******************************************************
+    solve subproblema1 minimizing J1 using NLP;
+    solve subproblema2 minimizing J2 using NLP;
+    solve subproblema3 minimizing J3 using NLP;
+
+******************************************************
+*** Solve the subproblems LD2
+******************************************************
+    solve LD21 minizing J_LD21 using NLP;
+    solve LD22 minizing J_LD22 using NLP;
+    
+******************************************************
+*** Calculate the dual value
+******************************************************
+    J_dual = J1.l + J2.l + J3.l + J_LD21.l + J_LD22.l;
+    
+******************************************************
+*** Evaluate the global problem at a feasible solution
+******************************************************
+    if ( (sum(i, s.l(i)) <= qmax + 1e-6) and (sum(i, sc.l(i)) <= qcmax + 1e-6),
+        contador = contador + 1;
+        q_temp(i) = q.l(i);
+        qc_temp(i) = qc.l(i);
+        q.fx(i) = s.l(i);
+        qc.fx(i) = sc.l(i);
+        
+        solve global minimizing J_total using NLP;
+        
+        if ((J_total.l<J_upper) and (J_total.l>J_dual),
+            J_upper = J_total.l;
+            );
+        J_upper = -372.642;
+        q.lo(i) = 0.3;
+        q.up(i) = 3;
+        qc.lo(i) = 1;
+        qc.up(i) = 25;
+        
+        q.l(i) = q_temp(i);
+        qc.l(i) = qc_temp(i);
+        );
+        
+******************************************************
+*** Update the multipliers via sub-gradient method
+******************************************************
+    sub_q(i) = (q.l(i) - s.l(i))/qmax;
+    sub_qc(i) = (qc.l(i) - sc.l(i))/qcmax;
+    
+    norm2_q = sqrt(sum(i, sqr(sub_q(i))));
+    norm2_qc = sqrt(sum(i, sqr(sub_qc(i))));
+    
+    lambda_1(i) = max(0, lambda_1(i) + step_size*abs(J_upper - J_dual)*sub_q(i)/sqr(norm2_q));
+    lambda_2(i) = max(0, lambda_2(i) + step_size*abs(J_upper - J_dual)*sub_qc(i)/sqr(norm2_qc));
+*    lambda_1(i) = max(0, lambda_1(i) + step_size*sub_q(i)/norm2_q);
+*    lambda_2(i) = max(0, lambda_2(i) + step_size*sub_qc(i)/norm2_qc);
+  
+******************************************************
+*** Convergence check
+******************************************************
+    if (norm2_q + norm2_qc <= 1e-6,
+        break
+        );
+        
+    q.l(i) = s.l(i);
+    qc.l(i) = sc.l(i);
+    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), sc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
+        lambda_2('1'), lambda_2('2'), lambda_2('3'), J_upper, J_dual, contador /;
+    q.l(i) = s.l(i);
+    qc.l(i) = sc.l(i);
+    );
 
 putclose;
 Display q.l, qc.l, T.l, Tc.l, Ca.l, Cb.l, J1.l, J2.l, J3.l, lambda_1, lambda_2;
-
