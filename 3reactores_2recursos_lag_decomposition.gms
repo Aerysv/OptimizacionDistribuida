@@ -230,7 +230,7 @@ qc.up(i) = 25;
 sc.up(i) = 25;
 
 T.lo(i) = 10;
-T.up(i) = 1500;
+T.up(i) = 150;
 
 model subproblema1 /Balance_Ca1, Balance_Cb1, Balance_Cc1, Balance_Cd1, Balance_T1, Balance_Tc1,
                     cinetica11, cinetica21, cinetica31, dH1, TransmisionCalor1, CostoIndividual1/;
@@ -272,8 +272,7 @@ global.optfile = 1;
 Parameters
     sub_q(i)
     sub_qc(i)
-    norm2_q
-    norm2_qc
+    norm2
     q_temp(i)
     qc_temp(i)
     J_dual
@@ -282,10 +281,10 @@ Parameters
     solver
     ;
 
-while (n_iter < 1000,
+while (n_iter < 10000,
     
     n_iter = n_iter + 1;
-    step_size = 0.01;
+    step_size = 0.1/sqrt(n_iter);
     
 ******************************************************
 *** Solve the subproblems LD1
@@ -309,7 +308,6 @@ while (n_iter < 1000,
 *** Evaluate the global problem at a feasible solution
 ******************************************************
     if ( (sum(i, s.l(i)) <= qmax + 1e-6) and (sum(i, sc.l(i)) <= qcmax + 1e-6),
-    
         q_temp(i) = q.l(i);
         qc_temp(i) = qc.l(i);
         
@@ -330,6 +328,8 @@ while (n_iter < 1000,
         qc.l(i) = qc_temp(i);
         
         if ((J_total.l<J_upper) and (J_total.l>J_dual) and (modelo <= 2) and (solver = 1),
+* LD21 y LD22 pueden dar soluciones no factibles del problema global y por eso es necesario
+* verificar que la evaluación del problema salga bien
             J_upper = J_total.l;
             );
         );
@@ -340,11 +340,10 @@ while (n_iter < 1000,
     sub_q(i) = q.l(i) - s.l(i);
     sub_qc(i) = qc.l(i) - sc.l(i);
     
-    norm2_q = sqrt(sum(i, sqr(sub_q(i))));
-    norm2_qc = sqrt(sum(i, sqr(sub_qc(i))));
+    norm2 = sqrt(sum(i, sqr(sub_q(i))) + sum(i, sqr(sub_qc(i))));
     
-    lambda_1(i) = max(0, lambda_1(i) + step_size*abs(J_upper - J_dual)*sub_q(i)/sqr(norm2_q));
-    lambda_2(i) = max(0, lambda_2(i) + step_size*abs(J_upper - J_dual)*sub_qc(i)/sqr(norm2_qc));
+    lambda_1(i) = max(0, lambda_1(i) + step_size*abs(J_upper - J_dual)*sub_q(i)/sqr(norm2));
+    lambda_2(i) = max(0, lambda_2(i) + step_size*abs(J_upper - J_dual)*sub_qc(i)/sqr(norm2));
   
 ******************************************************
 *** Convergence check
@@ -358,6 +357,7 @@ while (n_iter < 1000,
         );
     put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
         lambda_2('1'), lambda_2('2'), lambda_2('3'), J_upper, J_dual, s.l('1'), s.l('2'), s.l('3'), sc.l('1'), sc.l('2'), sc.l('3') /;
-    );
+    );    
+
 putclose;
 
