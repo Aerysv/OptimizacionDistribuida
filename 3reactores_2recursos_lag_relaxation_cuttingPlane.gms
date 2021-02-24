@@ -1,17 +1,8 @@
-$TITLE 3reactores, descomposicion lagrangiana con cutting plane
-$ontext
-fecha: 24/02/2021
-autor: Daniel Montes
-comentarios: cutting plane con sets dinámicos y alargamiento/encogomiento
-             de la región fáctible de los multiplicadores
-problemas: Converge a un punto no óptimo.
-$offtext
-
 Sets
-    i       "Indice reactores"  /1, 2, 3/
-    k       "Indice reacciones" /reaccion1,reaccion2,reaccion3/
-    j       "Multiplicadores"   /m1*m6/
-    iter    "Iteraciones"       /1*100/
+    i   "Indice reactores"  /1, 2, 3/
+    k   "Indice reacciones" /reaccion1,reaccion2,reaccion3/
+    j       "Multiplicadores"   /m1*m2/
+    iter    "Iteraciones"       /1*30/
     cutset(iter)    "Set dinámico del cutting plane";
 
 * Restricción dinámica para agregar cortes en cada restricción
@@ -22,8 +13,6 @@ Parameters
     Vc(i)       "Volumen de las camisas (L)"    /1 1, 2 1, 3 1/
     Ca0(i)      "Concentración de entrada de A (mol/L)"         /1 5, 2 5, 3 5/
     alpha(i)    "Parámetros de transmisión de calor (kJ/ºC)"    /1 1, 2 1.22, 3 1.42/
-    lambda_1(i) "Multiplicadores de reactivos"      /1 0, 2 0, 3 0/
-    lambda_2(i) "Multiplicadores de refrigerante"   /1 0, 2 0, 3 0/
     subgradiente(j,iter)
     theta_k(j,iter)
     dual_value(iter);
@@ -41,7 +30,9 @@ Scalars
     c_c     "Precio de C (€/mol)"   /5/
     c_d     "Precio de D (€/mol)"   /6/
     c_qc    "Precio del refrigerante (€/L)" /1/
-    n_iter  "Contador de iteraciones" /0/;
+    lambda_1    "Multiplizador del caudal de reactivos" /50/
+    lambda_2    "Multiplizador del caudal de refrigerante" /20/
+    n_iter      "Numero de iteraciones" /0/;
 
 Table k0(i,k)    "Constantes pre-exponenciales (1/mol)"
         reaccion1   reaccion2   reaccion3
@@ -74,17 +65,17 @@ Positive Variables
     Tc(i)   "Temperatura de la camisa (ºC)" /1.l 20, 2.l 20, 3.l 20/
     Q_tr(i) "Calor transferido reactor-camisa (kJ/min)"
     q(i)    "Caudal de reactivos (L/min)"   /1.l 0.5, 2.l 2, 3.l 2.5/
-    s(i)    "Caudal de reactivos (L/min)"   /1.l 0.5, 2.l 2, 3.l 2.5/
-    qc(i)   "Caudal refrigerante (L/min)"   /1.l 19, 2.l 7, 3.l 14/
-    sc(i)   "Caudal refrigerante (L/min)"   /1.l 19, 2.l 7, 3.l 14/;
+    qc(i)   "Caudal refrigerante (L/min)"   /1.l 19, 2.l 7, 3.l 14/;
     
 Variables
+    r1(i)   "Velocidad de la reacción 1 (mol/min)"
+    r2(i)   "Velocidad de la reacción 2 (mol/min)"
+    r3(i)   "Velocidad de la reacción 3 (mol/min)"
+    dHtot(i)"Calor total de reacción (kJ/min)"
     J1      "Funcion de costo individual (€/min)"
     J2      "Funcion de costo individual (€/min)"
     J3      "Funcion de costo individual (€/min)"
-    J_LD21
-    J_LD22
-    J_total
+    J_total "Funcion de costo individual (€/min)"
     z
     theta(j)
     Jz;
@@ -126,10 +117,6 @@ Equations
     CostoIndividual1    "Función de costo de cada reactor"
     CostoIndividual2    "Función de costo de cada reactor"
     CostoIndividual3    "Función de costo de cada reactor"
-    restr_LD21
-    Costo_LD21
-    restr_LD22
-    Costo_LD22
     CostoTotal
     trust_region(iter)
     Objz;
@@ -145,7 +132,7 @@ cinetica21..        r2('1') =E= k0('1','reaccion2')*system.exp(-Ea('1','reaccion
 cinetica31..        r3('1') =E= k0('1','reaccion3')*system.exp(-Ea('1','reaccion3')/(R*(T('1')+273.15)))*Ca('1')**2;
 dH1..               dHtot('1') =E= -V('1')*(dH('1','reaccion1')*r1('1') + dH('1','reaccion2')*r2('1') + dH('1','reaccion3')*r3('1'));
 TransmisionCalor1.. Q_tr('1') =E= alpha('1')*(qc('1')**0.8)*(T('1') - Tc('1'));
-CostoIndividual1..  J1 =E= -(q('1')*(c_b*Cb('1') + c_c*Cc('1') + c_d*Cd('1') - c_a*Ca('1')) - c_qc*qc('1')) + lambda_1('1')*q('1') + lambda_2('1')*qc('1');
+CostoIndividual1..  J1 =E= -(q('1')*(c_b*Cb('1') + c_c*Cc('1') + c_d*Cd('1') - c_a*Ca('1')) - c_qc*qc('1')) + lambda_1*q('1') + lambda_2*qc('1');
 
 Balance_Ca2..       0 =E= q('2')*(Ca0('2') - Ca('2')) + V('2')*(-r1('2') - 2*r3('2'));
 Balance_Cb2..       0 =E= -q('2')*Cb('2') + V('2')*( r1('2') -   r2('2'));
@@ -158,7 +145,7 @@ cinetica22..        r2('2') =E= k0('2','reaccion2')*system.exp(-Ea('2','reaccion
 cinetica32..        r3('2') =E= k0('2','reaccion3')*system.exp(-Ea('2','reaccion3')/(R*(T('2')+273.15)))*Ca('2')**2;
 dH2..               dHtot('2') =E= -V('2')*(dH('2','reaccion1')*r1('2') + dH('2','reaccion2')*r2('2') + dH('2','reaccion3')*r3('2'));
 TransmisionCalor2.. Q_tr('2') =E= alpha('2')*(qc('2')**0.8)*(T('2') - Tc('2'));
-CostoIndividual2..  J2 =E= -(q('2')*(c_b*Cb('2') + c_c*Cc('2') + c_d*Cd('2') - c_a*Ca('2')) - c_qc*qc('2')) + lambda_1('2')*q('2') + lambda_2('2')*qc('2');
+CostoIndividual2..  J2 =E= -(q('2')*(c_b*Cb('2') + c_c*Cc('2') + c_d*Cd('2') - c_a*Ca('2')) - c_qc*qc('2')) + lambda_1*q('2') + lambda_2*qc('2');
 
 Balance_Ca3..       0 =E= q('3')*(Ca0('3') - Ca('3')) + V('3')*(-r1('3') - 2*r3('3'));
 Balance_Cb3..       0 =E= -q('3')*Cb('3') + V('3')*( r1('3') -   r2('3'));
@@ -171,36 +158,27 @@ cinetica23..        r2('3') =E= k0('3','reaccion2')*system.exp(-Ea('3','reaccion
 cinetica33..        r3('3') =E= k0('3','reaccion3')*system.exp(-Ea('3','reaccion3')/(R*(T('3')+273.15)))*Ca('3')**2;
 dH3..               dHtot('3') =E= -V('3')*(dH('3','reaccion1')*r1('3') + dH('3','reaccion2')*r2('3') + dH('3','reaccion3')*r3('3'));
 TransmisionCalor3.. Q_tr('3') =E= alpha('3')*(qc('3')**0.8)*(T('3') - Tc('3'));
-CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1('3')*q('3') + lambda_2('3')*qc('3');
+CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1*q('3') + lambda_2*qc('3');
 
-restr_LD21..        sum(i, s(i)) =L= qmax;
-Costo_LD21..        J_LD21 =E= - sum(i, lambda_1(i)*s(i));
-
-restr_LD22..        sum(i, sc(i)) =L= qcmax;
-Costo_LD22..        J_LD22 =E= - sum(i, lambda_2(i)*sc(i));
-
-CostoTotal.. J_total =E= -sum(i, (q(i)*(c_b*Cb(i) + c_c*Cc(i) + c_d*Cd(i) - c_a*Ca(i)) - c_qc*qc(i)));
+CostoTotal.. J_total =E= J1 + J2 + J3 - lambda_1*sum(i, q(i)) - lambda_2*sum(i, qc(i));
 
 Objz.. z =E= Jz;
 trust_region(cutset).. z =L= dual_value(cutset) + sum(j, subgradiente(j,cutset)*(theta(j) - theta_k(j,cutset)));
 
 q.lo(i) = 0.3;
-s.lo(i) = 0.3;
-
 q.up(i) = 3;
-s.up(i) = 3;
 
 qc.lo(i) = 1;
-sc.lo(i) = 1;
-
 qc.up(i) = 25;
-sc.up(i) = 25;
 
 T.lo(i) = 10;
 T.up(i) = 1500;
 
-theta.lo(j) = 0.1;
-theta.up(j) = 400;
+theta.lo(j) = 3;
+theta.up(j) = 200;
+     
+lambda_1 = 81.05026;
+lambda_2 = 20;
 
 model subproblema1 /Balance_Ca1, Balance_Cb1, Balance_Cc1, Balance_Cd1, Balance_T1, Balance_Tc1,
                     cinetica11, cinetica21, cinetica31, dH1, TransmisionCalor1, CostoIndividual1/;
@@ -208,11 +186,7 @@ model subproblema2 /Balance_Ca2, Balance_Cb2, Balance_Cc2, Balance_Cd2, Balance_
                     cinetica12, cinetica22, cinetica32, dH2, TransmisionCalor2, CostoIndividual2/;
 model subproblema3 /Balance_Ca3, Balance_Cb3, Balance_Cc3, Balance_Cd3, Balance_T3, Balance_Tc3,
                     cinetica13, cinetica23, cinetica33, dH3, TransmisionCalor3, CostoIndividual3/;
-                    
 model global /subproblema1, subproblema2, subproblema3, CostoTotal/;
-
-model LD21 /restr_LD21, Costo_LD21/;
-model LD22 /restr_LD22, Costo_LD22/;
 
 model update_multipliers /Objz, trust_region/;
 
@@ -221,25 +195,7 @@ put reporte;
 *Limitar los decimales a cinco
 reporte.nd = 5;
 *Delimitar por comas
-reporte.pc = 5;
-
-option NLP = ipopt;
-
-****************************
-*** Set IPOPT options file
-****************************
-$onecho >ipopt.opt
-print_level 0
-print_eval_error no
-print_timing_statistics no
-$offecho
-
-subproblema1.optfile = 1;
-subproblema2.optfile = 1;
-subproblema3.optfile = 1;
-LD21.optfile = 1;
-LD22.optfile = 1;
-global.optfile = 1;
+*reporte.pc = 5;
 
 Parameters
     q_temp(i)
@@ -256,6 +212,8 @@ Scalars
     c /2/
     d /0.8/
     ;
+    
+option NLP = ipopt;
 
 Loop (iter,
 
@@ -272,79 +230,30 @@ Loop (iter,
     ABORT$(subproblema3.MODELSTAT > 2) "Model not normally completed", subproblema3.MODELSTAT;
     
 ******************************************************
-*** Solve the subproblems LD2
-******************************************************
-    solve LD21 minizing J_LD21 using NLP;
-    solve LD22 minizing J_LD22 using NLP;
-* Se verifica el estado del optimizador 
-    ABORT$(LD21.MODELSTAT > 2) "Model not normally completed", LD21.MODELSTAT;
-    ABORT$(LD22.MODELSTAT > 2) "Model not normally completed", LD22.MODELSTAT;
-    
-******************************************************
 *** Calculate the dual value
 ******************************************************
-    J_dual = J1.l + J2.l + J3.l + J_LD21.l + J_LD22.l;
-
-******************************************************
-*** Evaluate the global problem at a feasible solution
-******************************************************
-* Se almacenan temporalmente las soluciones de los subproblemas1, 2 y 3
-    q_temp(i) = q.l(i);
-    qc_temp(i) = qc.l(i);
-* Se evalua el problema global en el punto factible de los subproblemas LD21 y LD22       
-    q.fx(i) = s.l(i);
-    qc.fx(i) = sc.l(i);
-
-    solve global minimizing J_total using NLP;
-            
-    modelo = global.MODELSTAT;
-    solver = global.SOLVESTAT;
-        
-    q.lo(i) = 0.3;
-    q.up(i) = 3;
-    qc.lo(i) = 1;
-    qc.up(i) = 25;
-* Se retoma el valor guardado de los subproblemas1, 2 y 3
-    q.l(i) = q_temp(i);
-    qc.l(i) = qc_temp(i);
-        
-    if ((J_total.l<J_upper) and (J_total.l>J_dual) and (modelo <= 2) and (solver = 1),
-* LD21 y LD22 pueden dar soluciones no factibles del problema global y por eso es necesario
-* verificar que la evaluación del problema salga bien
-        J_upper = J_total.l;
-        );
-
+    J_dual = J1.l + J2.l + J3.l - lambda_1*qmax - lambda_2*qcmax;
+ 
 ******************************************************
 *** Update the multipliers via the trust region method
 ******************************************************
 * Se activa una restricción adicial del cutting plane
     cutset(iter) = yes;
-        
+    
     dual_value(iter) = J_dual;
     
-    subgradiente('m1', iter) = (q.l('1') - s.l('1'));
-    subgradiente('m2', iter) = (q.l('2') - s.l('2'));
-    subgradiente('m3', iter) = (q.l('3') - s.l('3'));
-    subgradiente('m4', iter) = (qc.l('1') - sc.l('1'));
-    subgradiente('m5', iter) = (qc.l('2') - sc.l('2'));
-    subgradiente('m6', iter) = (qc.l('3') - sc.l('3'));
+    subgradiente('m1', iter) = sum(i, q.l(i)) - qmax;
+    subgradiente('m2', iter) = sum(i, qc.l(i)) - qcmax;
     
-    theta_k('m1', iter) = lambda_1('1');
-    theta_k('m2', iter) = lambda_1('2');
-    theta_k('m3', iter) = lambda_1('3');
-    theta_k('m4', iter) = lambda_2('1');
-    theta_k('m5', iter) = lambda_2('2');
-    theta_k('m6', iter) = lambda_2('3');
-    
+    theta_k('m1', iter) = lambda_1;
+    theta_k('m2', iter) = lambda_2;
+
     solve update_multipliers maximizing Jz using LP;
     ABORT$(update_multipliers.MODELSTAT > 2) "Model not normally completed", update_multipliers.MODELSTAT;
 * Se recogen los valores actualizados de los multiplicadores
-    lambda_1('1') = theta.l('m1');
-    lambda_1('2') = theta.l('m2');
-    lambda_1('3') = theta.l('m3');
-    lambda_2('1') = theta.l('m4');
-    lambda_2('2') = theta.l('m5');
-    lambda_2('3') = theta.l('m6');
+    lambda_1 = theta.l('m1');
+    lambda_2 = theta.l('m2');
+
 * Heuristica para actualizar las cotas de los multiplicadores. (Conejo, A., 2006). 
     Loop(j,
         if(theta.l(j) = theta.up(j),
@@ -359,17 +268,14 @@ Loop (iter,
 ******************************************************
 *** Verificar convergencia
 ******************************************************
-    if (abs(J_upper - J_dual) <= 1e-6,
-        break
-        );
+*    if (abs(J_upper - J_dual) <= 1e-6,
+*        break
+*        );
 
 * Guardar fichero de datos  
-    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
-        lambda_2('1'), lambda_2('2'), lambda_2('3'), J_total.l, J_upper, J_dual, s.l('1'), s.l('2'), s.l('3'), sc.l('1'), sc.l('2'), sc.l('3') /;
-* Se da como initial guess el resultado de los subproblemas LD21 y LD22
-    q.l(i) = s.l(i);
-    qc.l(i) = sc.l(i);
+    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1, lambda_2, J_dual /;
     );    
 
 putclose;
+
 
