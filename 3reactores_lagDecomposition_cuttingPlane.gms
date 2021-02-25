@@ -199,7 +199,7 @@ sc.up(i) = 25;
 T.lo(i) = 10;
 T.up(i) = 1500;
 
-theta.lo(j) = 0.1;
+theta.lo(j) = 0;
 theta.up(j) = 400;
 
 model subproblema1 /Balance_Ca1, Balance_Cb1, Balance_Cc1, Balance_Cd1, Balance_T1, Balance_Tc1,
@@ -367,8 +367,8 @@ Loop (iter,
     put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1('1'), lambda_1('2'), lambda_1('3'),
         lambda_2('1'), lambda_2('2'), lambda_2('3'), J_total.l, J_upper, J_dual, s.l('1'), s.l('2'), s.l('3'), sc.l('1'), sc.l('2'), sc.l('3') /;
 * Se da como initial guess el resultado de los subproblemas LD21 y LD22
-    q.l(i) = s.l(i);
-    qc.l(i) = sc.l(i);
+*    q.l(i) = s.l(i);
+*    qc.l(i) = sc.l(i);
     );    
 
 putclose;
