@@ -183,6 +183,7 @@ CostoTotal.. J_total =E= -sum(i, (q(i)*(c_b*Cb(i) + c_c*Cc(i) + c_d*Cd(i) - c_a*
 
 Objz.. z =E= Jz;
 trust_region(cutset).. z =L= dual_value(cutset) + sum(j, subgradiente(j,cutset)*(theta(j) - theta_k(j,cutset)));
+*trust_region(cutset).. z =L= dual_value(cutset) + sum(j, subgradiente(j,cutset)*(theta(j)));
 
 q.lo(i) = 0.3;
 s.lo(i) = 0.3;
@@ -221,7 +222,7 @@ put reporte;
 *Limitar los decimales a cinco
 reporte.nd = 5;
 *Delimitar por comas
-reporte.pc = 5;
+*reporte.pc = 5;
 
 option NLP = ipopt;
 
