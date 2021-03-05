@@ -32,9 +32,9 @@ Positive Variables
     C3;
     
 Binary Variables
-    x1
-    x2
-    x3;
+    y1
+    y2
+    y3;
 
 Variables
     J;
@@ -53,8 +53,8 @@ Equations
     ;
 
 
-Obj.. J =E= -(pC*C - x1*cf1 - cv1*A - pB*B_mercado - pA*A 
-            - x2*cf2 - cv2*B2 - x3*cf3 - cv3*B3);
+Obj.. J =E= -(pC*C - y1*cf1 - cv1*A - pB*B_mercado - pA*A 
+            - y2*cf2 - cv2*B2 - y3*cf3 - cv3*B3);
 
 ProducirA.. B_fabrica =E= n1*A;
 ProducirB.. B2 + B3 =E= B_mercado + B_fabrica;
@@ -62,13 +62,13 @@ ProducirC.. C =E= C2 + C3;
 ProducirC2.. C2 =E= n2*B2;
 ProducirC3.. C3 =E= n3*B3;
 
-MaxA.. A =L= x1*Amax;
+MaxA.. A =L= y1*Amax;
 *MaxB_fabrica.. B_fabrica =L= 1000*x1;
 *MaxB_mercado.. B_mercado =L= 1000*(1-x1);
-MaxC2.. C2 =L= x2*Cmax;
-MaxC3.. C3 =L= x3*Cmax;
+MaxC2.. C2 =L= y2*Cmax;
+MaxC3.. C3 =L= y3*Cmax;
 
-Proceso23.. x2 + x3 =L= 1;
+Proceso23.. y2 + y3 =L= 1;
 
 model monolitico /all/;
 

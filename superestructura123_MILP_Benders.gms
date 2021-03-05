@@ -18,8 +18,8 @@ cutset(iter) = no;
 Parameters
     sub_obj(iter)
     lambda(i, iter)
-    x_k(i, iter)
-    x_fx(i);
+    y_k(i, iter)
+    y_fx(i);
     
 Scalars
     cf1 /1000/
@@ -46,10 +46,10 @@ Positive Variables
     C
     C2
     C3
-    x_sub(i);
+    y_sub(i);
     
 Binary Variables
-    x(i);
+    y(i);
 
 Variables
     J
@@ -67,41 +67,41 @@ Equations
     MaxC2
     MaxC3
     Proceso23
-    fix_x(i)
+    fix_y(i)
     ObjMaster
     CP(iter)
     ;
 
 
-Obj.. J =E= -(pC*C - x_sub('1')*cf1 - cv1*A - pB*B_mercado - pA*A 
-            - x_sub('2')*cf2 - cv2*B2 - x_sub('3')*cf3 - cv3*B3);
+Obj.. J =E= -(pC*C - y_sub('1')*cf1 - cv1*A - pB*B_mercado - pA*A 
+            - y_sub('2')*cf2 - cv2*B2 - y_sub('3')*cf3 - cv3*B3);
 ProducirA.. B_fabrica =E= n1*A;
 ProducirB.. B2 + B3 =E= B_mercado + B_fabrica;
 ProducirC.. C =E= C2 + C3;
 ProducirC2.. C2 =E= n2*B2;
 ProducirC3.. C3 =E= n3*B3;
-MaxA.. A =L= x_sub('1')*Amax;
-*MaxB_fabrica.. B_fabrica =L= 1000*x1;
-*MaxB_mercado.. B_mercado =L= 1000*(1-x1);
-MaxC2.. C2 =L= x_sub('2')*Cmax;
-MaxC3.. C3 =L= x_sub('3')*Cmax;
-fix_x(i).. x_sub(i) =E= x_fx(i);
+MaxA.. A =L= y_sub('1')*Amax;
+*MaxB_fabrica.. B_fabrica =L= 1000*y1;
+*MaxB_mercado.. B_mercado =L= 1000*(1-y1);
+MaxC2.. C2 =L= y_sub('2')*Cmax;
+MaxC3.. C3 =L= y_sub('3')*Cmax;
+fix_y(i).. y_sub(i) =E= y_fx(i);
 
 ObjMaster..     z =E= alpha;
-CP(cutset)..    alpha =G= sub_obj(cutset) + sum(i, lambda(i, cutset)*(x(i) - x_k(i, cutset) ));
-Proceso23.. x('2') + x('3') =L= 1;
+CP(cutset)..    alpha =G= sub_obj(cutset) + sum(i, lambda(i, cutset)*(y(i) - y_k(i, cutset) ));
+Proceso23.. y('2') + y('3') =L= 1;
 
 model subproblema /Obj, ProducirA, ProducirB, ProducirC, ProducirC2, ProducirC3,
-                   MaxA, MaxC2, MaxC3, fix_x/;
+                   MaxA, MaxC2, MaxC3, fix_y/;
                    
 model master /Objmaster, CP, Proceso23/;
 
 * Inicialización
 alpha.lo = -10000;
 
-x.l('1') = 0;
-x.l('2') = 0;
-x.l('3') = 1;
+y.l('1') = 0;
+y.l('2') = 0;
+y.l('3') = 1;
 
 * Escribir a texto
 File reporte /reporte.txt/;
@@ -114,11 +114,11 @@ reporte.nd = 5;
 Loop(iter,
 
 * Resolver el subproblema
-    x_k(i, iter) = x.l(i);
-    x_fx(i) = x_k(i, iter);
+    y_k(i, iter) = y.l(i);
+    y_fx(i) = y_k(i, iter);
     solve subproblema using LP minimizing J;
     
-    lambda(i, iter) = fix_x.M(i);
+    lambda(i, iter) = fix_y.M(i);
     sub_obj(iter) = J.l;
     J.up = J.l;
 
@@ -128,7 +128,7 @@ Loop(iter,
     J.lo = alpha.l;
     
 * Escribir a texto
-    put x.l('1'), x.l('2'), x.l('3'), J.lo, J.l, J.up /;
+    put y.l('1'), y.l('2'), y.l('3'), J.lo, J.l, J.up /;
     
 * Verificar convergencia
     if (abs(J.lo - J.up) < 1e-6, break);
