@@ -275,8 +275,8 @@ Loop (iter,
 ******************************************************
 *** Solve the subproblems LD2
 ******************************************************
-    solve LD21 minizing J_LD21 using NLP;
-    solve LD22 minizing J_LD22 using NLP;
+    solve LD21 minimizing J_LD21 using NLP;
+    solve LD22 minimizing J_LD22 using NLP;
 * Se verifica el estado del optimizador 
     ABORT$(LD21.MODELSTAT > 2) "Model not normally completed", LD21.MODELSTAT;
     ABORT$(LD22.MODELSTAT > 2) "Model not normally completed", LD22.MODELSTAT;

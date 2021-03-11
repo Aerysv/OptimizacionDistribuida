@@ -101,5 +101,6 @@ while (n_iter < n_max,
     put x1.l, x2.l, lambda /;
     );
 *$offtext
-
-Display x1.l, x2.l;
+scalar j_dual;
+j_dual = J1.l + J2.l - lambda*5
+Display x1.l, x2.l, j_dual;

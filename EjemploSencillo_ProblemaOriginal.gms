@@ -2,15 +2,15 @@ Variables
 
     x1
     x2
-    lambda
     J;
 
 Equations
     objetivo
-
+    restr
     ;
     
-objetivo .. J =E= 2*(x1-2)*(x1-2) + 4*(x2-4)*(x2-4) + lambda*(x1 + x2 - 5);
+objetivo .. J =E= 2*(x1-2)*(x1-2) + 4*(x2-4)*(x2-4);
+restr.. x1 + x2 =E= 5;
 x1.lo = 0;
 x1.up = 10;
 x2.lo = 0;
@@ -23,4 +23,4 @@ Model obj /all/;
 
 Solve obj minimizing J using NLP;
 
-Display x1.l, x2.l, lambda.l, J.l;
+Display x1.l, x2.l, J.l;

@@ -63,8 +63,6 @@ ProducirC2.. C2 =E= n2*B2;
 ProducirC3.. C3 =E= n3*B3;
 
 MaxA.. A =L= y1*Amax;
-*MaxB_fabrica.. B_fabrica =L= 1000*x1;
-*MaxB_mercado.. B_mercado =L= 1000*(1-x1);
 MaxC2.. C2 =L= y2*Cmax;
 MaxC3.. C3 =L= y3*Cmax;
 
@@ -73,3 +71,4 @@ Proceso23.. y2 + y3 =L= 1;
 model monolitico /all/;
 
 solve monolitico using MIP minimizing J;
+
