@@ -42,7 +42,7 @@ File reporte /reporte.txt/;
 put reporte;
 put "     x1          x2          lambda" /;
 reporte.nd = 5;
-$ontext
+*$ontext
 while (n_iter < n_max,
 
     n_iter = n_iter + 1;
@@ -63,8 +63,8 @@ while (n_iter < n_max,
     lambda_old = lambda;
     put x1.l, x2.l, lambda /;
 );
-$offtext
-*$ontext
+*$offtext
+$ontext
 *CFM rule
 
 Scalars
@@ -100,7 +100,7 @@ while (n_iter < n_max,
     s_old = s;
     put x1.l, x2.l, lambda /;
     );
-*$offtext
+$offtext
 scalar j_dual;
 j_dual = J1.l + J2.l - lambda*5
 Display x1.l, x2.l, j_dual;
