@@ -50,7 +50,8 @@ Scalars
     lambda_1    "Multiplizador del caudal de reactivos" /402.66771/
     lambda_2    "Multiplizador del caudal de refrigerante6" /42.22861/
     n_iter      "Numero de iteraciones" /0/
-    step_size   "Tamño del paso del problema maestro" /0/;
+    step_size   "Tamño del paso del problema maestro" /0/
+    J_real  /-372.642/;
 
 Table k0(i,k)    "Constantes pre-exponenciales (1/mol)"
         reaccion1   reaccion2   reaccion3
@@ -103,7 +104,7 @@ Positive Variables
              3.l 2.5/
     qc(i)   "Caudal de refrigerante (L/min)"
             /1.l 13,
-             2.l 7,
+             2.l 15,
              3.l 14/;
 Variables
     r1(i)   "Velocidad de la reacción 1 (mol/min)"
@@ -165,7 +166,7 @@ cinetica21..        r2('1') =E= k0('1','reaccion2')*system.exp(-Ea('1','reaccion
 cinetica31..        r3('1') =E= k0('1','reaccion3')*system.exp(-Ea('1','reaccion3')/(R*(T('1')+273.15)))*Ca('1')**2;
 dH1..               dHtot('1') =E= -V('1')*(dH('1','reaccion1')*r1('1') + dH('1','reaccion2')*r2('1') + dH('1','reaccion3')*r3('1'));
 TransmisionCalor1.. Q_tr('1') =E= alpha('1')*(qc('1')**0.8)*(T('1') - Tc('1'));
-CostoIndividual1..  J1 =E= -(q('1')*(c_b*Cb('1') + c_c*Cc('1') + c_d*Cd('1') - c_a*Ca('1')) - c_qc*qc('1')) + lambda_1*q('1')/qmax + lambda_2*qc('1')/qcmax;
+CostoIndividual1..  J1 =E= -(q('1')*(c_b*Cb('1') + c_c*Cc('1') + c_d*Cd('1') - c_a*Ca('1')) - c_qc*qc('1')) + lambda_1*q('1') + lambda_2*qc('1');
 
 Balance_Ca2..       0 =E= q('2')*(Ca0('2') - Ca('2')) + V('2')*(-r1('2') - 2*r3('2'));
 Balance_Cb2..       0 =E= -q('2')*Cb('2') + V('2')*( r1('2') -   r2('2'));
@@ -178,7 +179,7 @@ cinetica22..        r2('2') =E= k0('2','reaccion2')*system.exp(-Ea('2','reaccion
 cinetica32..        r3('2') =E= k0('2','reaccion3')*system.exp(-Ea('2','reaccion3')/(R*(T('2')+273.15)))*Ca('2')**2;
 dH2..               dHtot('2') =E= -V('2')*(dH('2','reaccion1')*r1('2') + dH('2','reaccion2')*r2('2') + dH('2','reaccion3')*r3('2'));
 TransmisionCalor2.. Q_tr('2') =E= alpha('2')*(qc('2')**0.8)*(T('2') - Tc('2'));
-CostoIndividual2..  J2 =E= -(q('2')*(c_b*Cb('2') + c_c*Cc('2') + c_d*Cd('2') - c_a*Ca('2')) - c_qc*qc('2')) + lambda_1*q('2')/qmax + lambda_2*qc('2')/qcmax;
+CostoIndividual2..  J2 =E= -(q('2')*(c_b*Cb('2') + c_c*Cc('2') + c_d*Cd('2') - c_a*Ca('2')) - c_qc*qc('2')) + lambda_1*q('2') + lambda_2*qc('2');
 
 Balance_Ca3..       0 =E= q('3')*(Ca0('3') - Ca('3')) + V('3')*(-r1('3') - 2*r3('3'));
 Balance_Cb3..       0 =E= -q('3')*Cb('3') + V('3')*( r1('3') -   r2('3'));
@@ -191,20 +192,16 @@ cinetica23..        r2('3') =E= k0('3','reaccion2')*system.exp(-Ea('3','reaccion
 cinetica33..        r3('3') =E= k0('3','reaccion3')*system.exp(-Ea('3','reaccion3')/(R*(T('3')+273.15)))*Ca('3')**2;
 dH3..               dHtot('3') =E= -V('3')*(dH('3','reaccion1')*r1('3') + dH('3','reaccion2')*r2('3') + dH('3','reaccion3')*r3('3'));
 TransmisionCalor3.. Q_tr('3') =E= alpha('3')*(qc('3')**0.8)*(T('3') - Tc('3'));
-CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1*q('3')/qmax + lambda_2*qc('3')/qcmax;
+CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1*q('3') + lambda_2*qc('3');
 
-CostoTotal.. J_total =E= J1 + J2 + J3 - lambda_1*sum(i, q(i))/qmax - lambda_2*sum(i, qc(i))/qcmax;
+CostoTotal.. J_total =E= J1 + J2 + J3 - lambda_1*sum(i, q(i)) - lambda_2*sum(i, qc(i));
 
 q.lo(i) = 0.3;
 q.up(i) = 3;
 qc.lo(i) = 1;
 qc.up(i) = 25;
 T.lo(i) = 10;
-T.up(i) = 70;
-
-lambda_1 = 402.66771;
-lambda_2 = 42.22861;
-
+T.up(i) = 60;
 
 model subproblema1 /Balance_Ca1, Balance_Cb1, Balance_Cc1, Balance_Cd1, Balance_T1, Balance_Tc1,
                     cinetica11, cinetica21, cinetica31, dH1, TransmisionCalor1, CostoIndividual1/;
@@ -243,12 +240,15 @@ Parameters
     q_temp(i)
     qc_temp(i);
     
-s_old1 = (sum(i, q.l(i)) - qmax)/qmax;
-s_old2 = (sum(i, qc.l(i)) - qcmax)/qcmax;
+s_old1 = 0.01;
+s_old2 = 0.01;
 
 option NLP = ipopt;
 
-while (n_iter < 10000,
+lambda_1 = 80;
+lambda_2 = 2;
+
+while (n_iter < 1000,
 
 *Subproblemas
     solve subproblema1 minimizing J1 using NLP;
@@ -256,12 +256,13 @@ while (n_iter < 10000,
     solve subproblema3 minimizing J3 using NLP;
     
 * Lower bound. Se evalua el dual en la solución actual
-    J_dual = J1.l + J2.l + J3.l - lambda_1 - lambda_2;
+    J_dual = J1.l + J2.l + J3.l - lambda_1*qmax - lambda_2*qcmax;
     if (J_dual > J_dual_max, J_dual_max = J_dual;);
 * Upper bound. Alguna solución factible del problema original. Entre más cercana al óptimo mejor
 * Se debe generar una solución factible a partir de los subproblemas y evaluarla.
 * Esto es completamente heurístico y falla en el caso que hayan dos caudales en la cota inferior
 * o en la cota superior.
+$ontext
     q_temp(i) = q.l(i);
     qc_temp(i) = qc.l(i);
     
@@ -299,38 +300,39 @@ while (n_iter < 10000,
     qc.up(i) = 25;
     T.lo(i) = 10;
     T.up(i) = 70;
+$offtext
 *Master
     n_iter = n_iter + 1;
-*    step_size = 30/(n_iter**0.5);
-    step_size = 0.1;
+    step_size = 1/(n_iter**0.5);
+*    step_size = 10;
 *    step_size = 0.5;
-    subgradiente1 = (sum(i, q.l(i)) - qmax)/qmax;
-    subgradiente2 = (sum(i, qc.l(i)) - qcmax)/qcmax;
+    subgradiente1 = (sum(i, q.l(i)) - qmax);
+    subgradiente2 = (sum(i, qc.l(i)) - qcmax);
     
     norma2 = sqrt(sqr(subgradiente1) + sqr(subgradiente2));
     
-    beta_k1 = max(0, -gamma*s_old1*subgradiente1/( sqr(s_old1)+ sqr(s_old2) ) );
-    beta_k2 = max(0, -gamma*s_old2*subgradiente2/( sqr(s_old1)+ sqr(s_old2) ) );
+*    beta_k1 = max(0, -gamma*s_old1*subgradiente1/( sqr(s_old1)+ sqr(s_old2) ) );
+*    beta_k2 = max(0, -gamma*s_old2*subgradiente2/( sqr(s_old1)+ sqr(s_old2) ) );
     
-    s1 = subgradiente1 + beta_k1*s_old1;
-    s2 = subgradiente2 + beta_k2*s_old2;
+*    s1 = subgradiente1 + beta_k1*s_old1;
+*    s2 = subgradiente2 + beta_k2*s_old2;
     
 *    step = step_size*abs(J_up - J_dual)/sqr(norma2);
-*    lambda_1 = max(0, lambda_1 + step*subgradiente1);
-*    lambda_2 = max(0, lambda_2 + step*subgradiente2);    
-    step = step_size*abs(J_up - J_dual);    
-    lambda_1 = max(0, lambda_1 + step*s1);
-    lambda_2 = max(0, lambda_2 + step*s2);
+    lambda_1 = max(0, lambda_1 + step_size*subgradiente1/norma2);
+    lambda_2 = max(0, lambda_2 + step_size*subgradiente2/norma2);    
+*    step = step_size*abs(J_up - J_dual);    
+*    lambda_1 = max(0, lambda_1 + step*s1);
+*    lambda_2 = max(0, lambda_2 + step*s2);
 
-    s_old1 = s1;
-    s_old2 = s2;
+*    s_old1 = s1;
+*    s_old2 = s2;
     
 * Convergencia
     if (norma2 < 1e-6,
         break
         );        
     
-    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1, lambda_2, J_dual, J_up, norma2 /;
+    put n_iter, q.l('1'), q.l('2'), q.l('3'), (sum(i, q.l(i))-qmax), qc.l('1'), qc.l('2'), qc.l('3'), (sum(i, qc.l(i))-qcmax), lambda_1, lambda_2, J_dual, J_real /;
     );
 
 putclose;

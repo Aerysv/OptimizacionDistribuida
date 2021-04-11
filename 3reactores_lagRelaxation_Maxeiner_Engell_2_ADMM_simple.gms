@@ -69,6 +69,7 @@ Scalars
     n_iter      "Numero de iteraciones" /0/
     N "Número de subproblemas" /3/
     step /0.9/
+    J_real /-372.642/
     ;
     
 Table k0(i,k)    "Constantes pre-exponenciales (1/mol)"
@@ -123,7 +124,10 @@ Positive Variables
     qc(i)   "Caudal de refrigerante (L/min)"
             /1.l 13,
              2.l 7,
-             3.l 14/;
+             3.l 14/
+    norma2_ADMM_1
+    norma2_ADMM_2
+    norma2_ADMM_3;
 Variables
     r1(i)   "Velocidad de la reacción 1 (mol/min)"
     r2(i)   "Velocidad de la reacción 2 (mol/min)"
@@ -221,7 +225,7 @@ Aumentado3..         norma2_ADMM_3 =E= sqrt( sqr(q('3') - z('3')) + sqr(qc('3') 
 CostoIndividual3..  J3 =E= -(q('3')*(c_b*Cb('3') + c_c*Cc('3') + c_d*Cd('3') - c_a*Ca('3')) - c_qc*qc('3')) + lambda_1*q('3') + lambda_2*qc('3')
                             + (step/2)*sqr(z('1') + z('2') + q('3') - qmax)  + (step/2)*sqr(zc('1') + zc('2') + qc('3') - qcmax);
 
-CostoTotal.. J_total =E= J1 + J2 + J3 - lambda_1*sum(i, q(i))/qmax - lambda_2*sum(i, qc(i))/qcmax;
+CostoTotal.. J_total =E= J1 + J2 + J3 - lambda_1*sum(i, q(i)) - lambda_2*sum(i, qc(i));
 
 q.lo(i) = 0.3;
 q.up(i) = 3;
@@ -317,7 +321,7 @@ while (n_iter < 10000,
     s_old2 = s2;
     
 * Escribir datos
-    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1, lambda_2, J_dual, norma2, O_primal, O_dual/;
+    put n_iter, q.l('1'), q.l('2'), q.l('3'), (sum(i, q.l(i))-qmax), qc.l('1'), qc.l('2'), qc.l('3'), (sum(i, qc.l(i))-qcmax), lambda_1, lambda_2, J_dual, J_real /;
     );
 
 putclose;

@@ -2,7 +2,7 @@ Sets
     i   "Indice reactores"  /1, 2, 3/
     k   "Indice reacciones" /reaccion1,reaccion2,reaccion3/
     j       "Multiplicadores"   /m1*m2/
-    iter    "Iteraciones"       /1*30/
+    iter    "Iteraciones"       /1*100/
     cutset(iter)    "Set dinámico del cutting plane";
 
 * Restricción dinámica para agregar cortes en cada restricción
@@ -32,7 +32,8 @@ Scalars
     c_qc    "Precio del refrigerante (€/L)" /1/
     lambda_1    "Multiplizador del caudal de reactivos" /50/
     lambda_2    "Multiplizador del caudal de refrigerante" /20/
-    n_iter      "Numero de iteraciones" /0/;
+    n_iter      "Numero de iteraciones" /0/
+    J_real  /-372.642/;
 
 Table k0(i,k)    "Constantes pre-exponenciales (1/mol)"
         reaccion1   reaccion2   reaccion3
@@ -195,7 +196,7 @@ put reporte;
 *Limitar los decimales a cinco
 reporte.nd = 5;
 *Delimitar por comas
-*reporte.pc = 5;
+reporte.pc = 5;
 
 Parameters
     q_temp(i)
@@ -273,9 +274,8 @@ Loop (iter,
 *        );
 
 * Guardar fichero de datos  
-    put n_iter, q.l('1'), q.l('2'), q.l('3'), qc.l('1'), qc.l('2'), qc.l('3'), lambda_1, lambda_2, J_dual /;
+    put n_iter, q.l('1'), q.l('2'), q.l('3'), (sum(i, q.l(i))-qmax), qc.l('1'), qc.l('2'), qc.l('3'), (sum(i, qc.l(i))-qcmax), lambda_1, lambda_2, J_dual, J_real /;
     );    
 
 putclose;
-
 
