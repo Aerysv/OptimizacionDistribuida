@@ -160,17 +160,10 @@ qc.up(i) = 25;
 T.lo(i) = 10;
 T.up(i) = 150;
 
-q.fx('reactor1') = 1.7;
-q.fx('reactor2') = 3;
-q.fx('reactor3') = 0.3;
-qc.fx('reactor1') = 14;
-qc.fx('reactor2') = 25;
-qc.fx('reactor3') = 1;
-
 options NLP = ipopt;
 
 model modelo /ALL/;
 solve modelo minimizing J_total using NLP;
-Display q.l, qc.l, T.l, Tc.l, Ca.l, Cb.l, J_total.l;
+Display q.l, qc.l, T.l, Tc.l, Ca.l, Cb.l, J_total.l, TotalReactivos.M, TotalRefrigerante.M;
     
  
